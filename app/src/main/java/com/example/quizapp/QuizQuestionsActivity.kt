@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -46,6 +47,21 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         // This is used to align the xml view to this class
         setContentView(R.layout.activity_quiz_questions)
+        // check internet connection
+        if (!NetworkUtil.isConnectedToInternet(this)) {
+            // Redirect to NoInternetActivity if no internet is available
+            val intent = Intent(this, NoInternetActivity::class.java)
+            startActivity(intent)
+            finish()  // Finish the QuizQuestionActivity so the user can't go back to it
+        } else {
+            // If there's internet, proceed with normal setup for the quiz activity
+            setContentView(R.layout.activity_quiz_questions)
+        }
+        // Disable screenshots and screen recording for this activity
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
 
         mUserName = intent.getStringExtra(Constant.USER_NAME)
 
