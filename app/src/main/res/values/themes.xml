@@ -8,4 +8,8 @@
     <style name="Theme.QuizApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowFullscreen">true</item>
     </style>
+
+    <style name="TextColor">
+        <item name="android:textColor">@color/dark</item>
+    </style>
 </resources>

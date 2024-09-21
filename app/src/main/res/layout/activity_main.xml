@@ -39,7 +39,7 @@
                 android:text="@string/_welcome"
                 android:textSize="30sp"
                 android:textStyle="bold"
-                android:textColor="@color/dark"
+                style="@style/TextColor"
                 android:gravity="center"
                 />
 
@@ -50,7 +50,7 @@
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:layout_marginTop="16dp"
-                android:textColor="@color/material_dynamic_neutral40"
+                style="@style/TextColor"
                 android:gravity="center"
                 />
             <com.google.android.material.textfield.TextInputLayout
@@ -65,7 +65,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/_hintText"
                     android:inputType="textCapWords"
-                    android:textColor="@color/dark"
+                    style="@style/TextColor"
                     android:textColorHint="@color/material_dynamic_neutral40"
                     />
             </com.google.android.material.textfield.TextInputLayout>
