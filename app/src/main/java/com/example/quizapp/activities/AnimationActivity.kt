@@ -1,4 +1,4 @@
-package com.example.quizapp
+package com.example.quizapp.activities
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -8,6 +8,7 @@ import android.os.Looper
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.TextView
+import com.example.quizapp.R
 
 class AnimationActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +27,7 @@ class AnimationActivity : AppCompatActivity() {
 
             override fun onAnimationEnd(animation: Animation?) {
                 Handler(Looper.getMainLooper()).postDelayed({
-                    startActivity(Intent(this@AnimationActivity, MainActivity::class.java))
+                    startActivity(Intent(this@AnimationActivity, QuizSelection::class.java))
                     finish()
                 },1000)
             }

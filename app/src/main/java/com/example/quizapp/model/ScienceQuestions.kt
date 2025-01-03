@@ -1,9 +1,8 @@
-package com.example.quizapp
+package com.example.quizapp.model
 
-data class Question(
+data class ScienceQuestions(
     val id:Int,
     val question:String,
-    val image:Int,
     val optionOne:String,
     val optionTwo:String,
     val optionThree:String,

@@ -1,16 +1,26 @@
-package com.example.quizapp
+package com.example.quizapp.activities
 
 
+import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.media.MediaPlayer
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.widget.*
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import com.example.quizapp.utils.Constant
+import com.example.quizapp.utils.NetworkUtil
+import com.example.quizapp.model.Question
+import com.example.quizapp.R
+import com.example.quizapp.databinding.DialogCustomBackConfirmationBinding
+import kotlin.concurrent.thread
 
 class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -32,6 +42,7 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
 
     private var mCurrentPosition: Int = 1 // Default and the first question position
     private var mQuestionsList: ArrayList<Question>? = null
+
     private var mCorrectAnswers:Int = 0
     // END
 
@@ -41,7 +52,11 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
     // get user name from Main Activity
     private var mUserName:String? = null
 
+    private var mediaPlayer: MediaPlayer? = null // MediaPlayer for sound
 
+
+
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         //This call the parent constructor
         super.onCreate(savedInstanceState)
@@ -57,11 +72,27 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
             // If there's internet, proceed with normal setup for the quiz activity
             setContentView(R.layout.activity_quiz_questions)
         }
-        // Disable screenshots and screen recording for this activity
+      //   Disable screenshots and screen recording for this activity
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
         )
+
+        val toolbar: Toolbar? = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        if(supportActionBar != null){
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        }
+        toolbar?.setNavigationOnClickListener {
+            customDialogForBackButton()
+        }
+
+        onBackPressedDispatcher.addCallback(this,object : OnBackPressedCallback(true){
+            override fun handleOnBackPressed() {
+                customDialogForBackButton()
+            }
+        })
 
         mUserName = intent.getStringExtra(Constant.USER_NAME)
 
@@ -77,6 +108,8 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
         buttonSubmit = findViewById(R.id.btn_submit)
         mQuestionsList = Constant.getQuestions()
         // END
+        // Shuffle questions for a new order each time the quiz starts
+        mQuestionsList?.shuffle()
 
         setQuestion()
 
@@ -89,12 +122,14 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
         buttonSubmit?.setOnClickListener (this)
     }
 
-
+    //TODO STEP 1
     private fun setQuestion() {
 
         val question: Question =
             mQuestionsList!![mCurrentPosition - 1] // Getting the question from the list with the help of current position.
         defaultOptionsView()
+        enableOptions() // Enable options for a new question
+
 
         // TODO (STEP 6: Check here if the position of question is last then change the text of the button.)
         // START
@@ -117,13 +152,13 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
         tvOptionThree?.text = question.optionThree
         tvOptionFour?.text = question.optionFour
     }
-
+   // TODO STEP 4
     override fun onClick(view: View?) {
         when (view?.id) {
-
             R.id.tv_option_one -> {
                 tvOptionOne?.let {
                     selectedOptionView(it, 1)
+
                 }
 
             }
@@ -131,6 +166,7 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
             R.id.tv_option_two -> {
                 tvOptionTwo?.let {
                     selectedOptionView(it, 2)
+
                 }
 
             }
@@ -138,6 +174,7 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
             R.id.tv_option_three -> {
                 tvOptionThree?.let {
                     selectedOptionView(it, 3)
+
                 }
 
             }
@@ -149,55 +186,82 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
 
             }
 
-            // TODO(STEP 2: Adding a click event for submit button. And change the questions and check the selected answers.)
+            // TODO Adding a click event for submit button. And change the questions and check the selected answers.)
             // START
-            R.id.btn_submit->{
-
-                if (mSelectedOptionPosition == 0) {
-
-                    mCurrentPosition++
-
-                    when {
-
-                        mCurrentPosition <= mQuestionsList!!.size -> {
-
-                            setQuestion()
-                        }
-                        else -> {
-                            val intent = Intent(this@QuizQuestionsActivity,ResultActivity::class.java)
-                            intent.putExtra(Constant.USER_NAME,mUserName)
-                            intent.putExtra(Constant.CORRECT_ANSWERS,mCorrectAnswers)
-                            intent.putExtra(Constant.TOTAL_QUESTIONS,mQuestionsList?.size)
-                            startActivity(intent)
-                            finish()
-                        }
-                    }
-                } else {
-                    val question = mQuestionsList?.get(mCurrentPosition - 1)
-
-                    // This is to check if the answer is wrong
-                    if (question!!.correctAnswer != mSelectedOptionPosition) {
-                        answerView(mSelectedOptionPosition, R.drawable.wrong_option_border_bg)
-                    }else{
-                        mCorrectAnswers++
-                    }
-
-                    // This is for correct answer
-                    answerView(question.correctAnswer, R.drawable.correct_option_border_bg)
-
-                    if (mCurrentPosition == mQuestionsList!!.size) {
-                        buttonSubmit?.text = "FINISH"
+            R.id.btn_submit ->{
+                if(buttonSubmit?.text == "SUBMIT") {
+                    // check if option is selected
+                    if (mSelectedOptionPosition == 0) {
+                        Toast.makeText(
+                            this,
+                            "Please select an answer before proceeding", Toast.LENGTH_SHORT
+                        ).show()
                     } else {
-                        buttonSubmit?.text = "GO TO NEXT QUESTION"
-                    }
+                        disableOptions()// Disable options once an answer is selected
+                        val question =
+                            mQuestionsList?.get(mCurrentPosition - 1) // Retrieves the current question
+                            // This is to check if the selected  answer is wrong
+                            if(question!!.correctAnswer != mSelectedOptionPosition){
+                                playSound(false)
+                                answerView(
+                                    mSelectedOptionPosition,
+                                    R.drawable.wrong_option_border_bg
+                                )
 
-                    mSelectedOptionPosition = 0
+                            } else {
+                                playSound(true)
+                                mCorrectAnswers++
+                            }
+
+                            // This is for correct answer
+                            answerView(question.correctAnswer, R.drawable.correct_option_border_bg)
+
+                            if (mCurrentPosition == mQuestionsList!!.size) {
+                                buttonSubmit?.text = "FINISH"
+                            } else {
+                                buttonSubmit?.text = "GO TO NEXT QUESTION"
+                            }
+                        mSelectedOptionPosition = 0  //: Resets the selected option for the next question.
+                    }
+                }else{
+                    // Handle "GO TO NEXT QUESTION" or "FINISH" actions
+                    mCurrentPosition++
+                    if (mCurrentPosition <= mQuestionsList!!.size) {
+                        setQuestion() // Set the next question
+                        enableOptions() // Re-enable options for the next question
+                        buttonSubmit?.text = "SUBMIT" // Reset button text for next question
+                    } else {
+                        // End of quiz: move to ResultActivity
+                        val intent = Intent(this, ResultActivity::class.java)
+                        intent.putExtra(Constant.USER_NAME, mUserName)
+                        intent.putExtra(Constant.CORRECT_ANSWERS, mCorrectAnswers)
+                        intent.putExtra(Constant.TOTAL_QUESTIONS, mQuestionsList?.size)
+                        startActivity(intent)
+                        finish()
+                    }
                 }
             }
         }
     }
 
-    // TODO (STEP 3: Create a function for answer view.)
+    // Disable option clicks
+    private fun disableOptions() {
+        tvOptionOne?.isClickable = false
+        tvOptionTwo?.isClickable = false
+        tvOptionThree?.isClickable = false
+        tvOptionFour?.isClickable = false
+    }
+
+    // Enable option clicks
+    private fun enableOptions() {
+        tvOptionOne?.isClickable = true
+        tvOptionTwo?.isClickable = true
+        tvOptionThree?.isClickable = true
+        tvOptionFour?.isClickable = true
+    }
+
+
+    // TODO (STEP 5: Create a function for answer view.)
     // START
     /**
      * A function for answer view which is used to highlight the answer is wrong or right.
@@ -232,7 +296,11 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
             }
         }
     }
-
+    //TODO STEP 3
+    /*
+        The selectedOptionView function highlights the selected quiz option
+        by applying a unique style to the chosen TextView
+     */
     private fun selectedOptionView(tv: TextView, selectedOptionNum: Int) {
 
         defaultOptionsView()
@@ -249,7 +317,11 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
         )
     }
 
-
+    //TODO STEP 2
+    /*
+        The defaultOptionsView function sets up a list of option TextViews
+        and applies default styling to each one in a quiz activity
+     */
     private fun defaultOptionsView() {
 
         val options = ArrayList<TextView>()
@@ -274,6 +346,44 @@ class QuizQuestionsActivity : AppCompatActivity(), View.OnClickListener {
                 R.drawable.default_option_border_bg
             )
         }
+    }
+    private fun customDialogForBackButton(){
+        val customDialog  = Dialog(this)
+        val dialogBinding  = DialogCustomBackConfirmationBinding.inflate(layoutInflater)
+        customDialog.setContentView(dialogBinding.root)
+        customDialog.setCanceledOnTouchOutside(false)
+        dialogBinding.btnYes.setOnClickListener {
+            val intent = Intent(this@QuizQuestionsActivity,MainActivity::class.java)
+            startActivity(intent)
+            finish()
+            customDialog.dismiss()
+        }
+
+        dialogBinding.btnNo.setOnClickListener {
+            customDialog.dismiss()
+        }
+        customDialog.show()
+    }
+
+    private fun playSound(isCorrect: Boolean){
+        val soundResId = if(isCorrect){
+            R.raw.rightanswer
+        }else{
+            R.raw.wronganswer
+        }
+        mediaPlayer = MediaPlayer.create(this,soundResId)
+        mediaPlayer?.start()
+
+        mediaPlayer?.setOnCompletionListener {
+            it.release()
+            mediaPlayer = null
+        }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release MediaPlayer to avoid memory leaks
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }
 // END

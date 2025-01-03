@@ -9,7 +9,7 @@
     android:orientation="vertical"
     android:gravity="center_horizontal"
     android:padding="20dp"
-    tools:context=".activities.ResultActivity">
+    tools:context=".activities.SportsResultActivity">
 
     <TextView
         android:id="@+id/tv_result"

@@ -1,10 +1,12 @@
-package com.example.quizapp
+package com.example.quizapp.activities
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.quizapp.utils.NetworkUtil
+import com.example.quizapp.R
 
 class NoInternetActivity : AppCompatActivity() {
 
@@ -15,7 +17,7 @@ class NoInternetActivity : AppCompatActivity() {
         findViewById<Button>(R.id.retryButton).setOnClickListener {
             if (NetworkUtil.isConnectedToInternet(this)) {
                 // Retry logic: Go back to the main activity
-                val intent = Intent(this,QuizQuestionsActivity::class.java)
+                val intent = Intent(this, QuizQuestionsActivity::class.java)
                 startActivity(intent)
                 finish()
             } else {
